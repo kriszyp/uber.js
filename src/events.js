@@ -1,6 +1,12 @@
 /*
- * An events module built using very minimal code needed. The export
- * of this module can be used as a mixin:
+ * An events module built using very minimal code needed. The export of this module 
+ * is a function that can be used to listen for events on a target:
+ * listen = require("events");
+ * listen(node, "click", clickHandler);
+ * 
+ * The export of this module can be used as a mixin, to add on() and emit() methods
+ * for listening for events and dispatching events:
+ * var Evented = require("events");
  * var EventedWidget = Compose(Evented, Widget);
  * widget = new EventedWidget();
  * widget.on("open", function(event){
@@ -9,71 +15,15 @@
  *
  * widget.emit("open", {name:"some event", ...});
  * 
- * You can also use Evented constructor itself as a pub/sub hub:
- * Evented.on("some/topic", function(event){
+ * You can also use listen function itself as a pub/sub hub:
+ * listen("some/topic", function(event){
  * 	... do something with event
  * });
- * Evented.emit("some/topic", {name:"some event", ...});
+ * listen.publish("some/topic", {name:"some event", ...});
  */
  
 "use strict";
-(function(define){
-define(, function(Compose){
-	// aspect applier 
-	function aspect(handler){
-		return function(target, methodName, advice){
-			if(!advice){
-				if(methodName){
-					advice = methodName;
-					methodName = target;
-				}else{
-					// single argument, creating a decorator
-					advice = target;
-					return Decorator(install);
-				}
-				target = this;
-			}
-			install.call(target, methodName);
-			/*return {
-				cancel: function(){
-				// TODO: Add cancel method	
-				}
-			}*/
-			function install(key){
-				var baseMethod = this[key];
-				if(baseMethod && !(baseMethod.install)){
-					// if(baseMethod.around){
-					// if(baseMethod.around(handler, advice);
-					//}
-					// applying to a plain method
-					this[key] = handler(this, baseMethod, advice);
-				}else{
-					this[key] = Compose.around(function(topMethod){
-						baseMethod && baseMethod.install.call(this, key);
-						return handler(this, this[key], advice);
-					});
-				}
-			}
-		};
-	};
-	// around advice, useful for calling super methods too
-	Compose.around = aspect(function(target, base, advice){
-		return advice.call(target, base);
-	});
-	Compose.before = aspect(function(target, base, advice){
-		return function(){
-			var results = advice.apply(target, arguments);
-			return base.apply(target, results || arguments);
-		};
-	});
-	var undefined;
-	var after = Compose.after = aspect(function(target, base, advice){
-		return function(){
-			var results = base.apply(target, arguments);
-			var adviceResults = advice.apply(target, arguments);
-			return adviceResults === undefined ? results : adviceResults;
-		};
-	});
+define(["./aop"], function(aop){
 	var breakCycleLeak;
 	var has = function(){ 
 		return typeof navigator == "undefined" || navigate.userAgent.indexOf("Trident") == -1;  
@@ -92,15 +42,32 @@ define(, function(Compose){
 			};	
 		}
 	}
-	var prototype = {};
-	var on = prototype.on = /*prototype.addListener = prototype.addEventListener = prototype.subscribe = prototype.connect = */function(/*target?,*/type, listener, listenerForTarget){
-		if(listenerForTarget){
-			if(type.on){
+	var undefinedThis = (function(){
+		return this; // this depends on strict mode
+	})();
+	
+	var listen = function(target, type, listener){
+		if(this == undefinedThis || !this.on){
+			if(!listener){
+				// two args, do pub/sub
+				return listen(listen, target, type);
+			}
+			// this is being called directly, not being used for compose
+			if(target.on){ // delegate to the target's on() method
 				return target.on(type, listener);
 			}
-			return on.call(target, type, listener);
-		}
+			// call with two args, where the target is |this|
+			return prototype.on.call(target, type, listener);
+		}/*else{
+			 being used as a mixin, don't do anything
+		}*/
+	};
+	var prototype = listen.prototype;
+	prototype.on = /*prototype.addListener = prototype.addEventListener = prototype.subscribe = prototype.connect = */
+			function(/*target?,*/type, listener){
+		// normal path, the target is |this|
 		if(this.addEventListener){
+			// the target has addEventListener, which should be used if available (might or might not be a node, non-nodes can implement this method as well)
 			var node = this;
 			var signal = {
 				stop: function(){
@@ -113,27 +80,13 @@ define(, function(Compose){
 			signal.resume();
 			return signal;
 		}
-		return after(this, "on" + type, breakCycleLeak && this.nodeType ? 
+		return aop.after(this, "on" + type, breakCycleLeak && this.nodeType ? 
 			breakCycleLeak(listener) : // we have a DOM node and possibly a leaky GC, so we avoid 
 			listener);
 	};
-	prototype.emit = /*prototype.publish = prototype.dispatchEvent = */function(type, event){
+	listen.publish = prototype.emit = /*prototype.publish = prototype.dispatchEvent = */function(type, event){
 		type = "on" + type;
 		this[type] && this[type](event);
 	};
-	var Evented = Compose(prototype);
-	for(var i in prototype){
-		Evented[i] = prototype[i];
-	}
-	return Evented;
+	return listen;
 });
-})(typeof define != "undefined" ?
-	define: // AMD/RequireJS format if available
-	function(deps, factory){
-		if(typeof module !="undefined"){
-			module.exports = factory(require("./compose")); // CommonJS environment, like NodeJS
-		}else{
-			factory(Compose); // raw script, assign to Compose global
-		}
-	});
-	
