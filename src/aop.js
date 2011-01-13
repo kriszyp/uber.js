@@ -13,6 +13,8 @@
  * 	// this will be called when targetObject.methodName() is called, before the original function is called
  * });
  * 
+ * Note that "around" advice is not included in this module since it is so well supported 
+ * natively in JavaScript. No should be using a library to provide "around" advice.
  */
  
 "use strict";
