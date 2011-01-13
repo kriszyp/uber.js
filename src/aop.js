@@ -1,19 +1,18 @@
 /*
- * An events module built using very minimal code needed. The export
- * of this module can be used as a mixin:
- * var EventedWidget = Compose(Evented, Widget);
- * widget = new EventedWidget();
- * widget.on("open", function(event){
- * 	... do something with event
+ * AOP Advice
+ * Use this to add "before" or "after" advice to methods. For examples:
+ * var aop = require("pckg/aop");
+ * var handle = aop.after(targetObject, "methodName", function(someArgument){
+ * 	// this will be called when targetObject.methodName() is called, after the original function is called
  * });
- *
- * widget.emit("open", {name:"some event", ...});
  * 
- * You can also use Evented constructor itself as a pub/sub hub:
- * Evented.on("some/topic", function(event){
- * 	... do something with event
+ * handle.stop(); // this will stop the advice from being executed
+ * handle.resume(); // this will resume the advice being executed
+ * 
+ * aop.before(targetObject, "methodName", function(someArgument){
+ * 	// this will be called when targetObject.methodName() is called, before the original function is called
  * });
- * Evented.emit("some/topic", {name:"some event", ...});
+ * 
  */
  
 "use strict";
