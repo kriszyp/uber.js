@@ -26,7 +26,7 @@
 define(["has", "./aop"], function(has, aop){
 	var breakCycleLeak;
 	has.add("decent-gc", function(){ 
-		return typeof navigator == "undefined" || navigate.userAgent.indexOf("Trident") == -1;  
+		return typeof CollectGarbage == "undefined"; // no decent GC would expose itself ;)  
 	});
 	if(!has("decent-gc")){
 		// intentionally a global to break IE memory leaks 
