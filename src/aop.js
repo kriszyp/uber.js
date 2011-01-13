@@ -23,7 +23,7 @@ define([], function(){
 			var existing = target[methodName];
 			if(!existing || !existing.after){
 				// no dispatcher in place
-				var before, after, dispatcher = target[methodName] = function(){
+				var before = [], after = [], dispatcher = target[methodName] = function(){
 					dispatch(before, this, arguments);
 					// call the original method
 					var result = existing && existing.apply(this, arguments);
@@ -31,17 +31,14 @@ define([], function(){
 					return result;
 				};
 				function dispatch(list, target, args){
-					if(list){
+//					if(list){
 						for(var i = 0; i < list.length; i++){
-							list[i](target, args);
+							list[i].apply(target, args);
 						}
-					}
+	//				}
 				}
 				function createAspect(type, list){
 					dispatcher[type] = function(listener){
-						if(!list){
-							list = [];
-						}
 						var handle = {
 							stop: function(){
 								list.splice(list.indexOf(listener), 1);
@@ -57,8 +54,8 @@ define([], function(){
 				createAspect("before", before);
 				createAspect("after", after);
 			}
-			return dispatcher[type](advice);
-		}
+			return (dispatcher || existing)[type](advice);
+		};
 	}
 	return {
 		after: aspect("after"),

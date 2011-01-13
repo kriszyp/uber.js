@@ -6,7 +6,7 @@
  * 
  * The export of this module can be used as a mixin, to add on() and emit() methods
  * for listening for events and dispatching events:
- * var Evented = require("events");
+ * var Evented = require("events").Evented;
  * var EventedWidget = Compose(Evented, Widget);
  * widget = new EventedWidget();
  * widget.on("open", function(event){
@@ -23,12 +23,12 @@
  */
  
 "use strict";
-define(["./aop"], function(aop){
+define(["has", "./aop"], function(has, aop){
 	var breakCycleLeak;
-	var has = function(){ 
+	has.add("decent-gc", function(){ 
 		return typeof navigator == "undefined" || navigate.userAgent.indexOf("Trident") == -1;  
-	};
-	if(has("decent-gc")){
+	});
+	if(!has("decent-gc")){
 		// intentionally a global to break IE memory leaks 
 		__cache__ = {}; 
 		var nextId = 1;
@@ -37,7 +37,7 @@ define(["./aop"], function(aop){
 			__cache__[eventId] = listener;
 			return function(){
 				if(eventId in __cache__ && __cache__[eventId]){
-                	__cache__[id].apply(this, arguments);
+                	__cache__[eventId].apply(this, arguments);
 	            }
 			};	
 		}
@@ -62,7 +62,7 @@ define(["./aop"], function(aop){
 			 being used as a mixin, don't do anything
 		}*/
 	};
-	var prototype = listen.prototype;
+	var prototype = (listen.Evented = function(){}).prototype;
 	prototype.on = /*prototype.addListener = prototype.addEventListener = prototype.subscribe = prototype.connect = */
 			function(/*target?,*/type, listener){
 		// normal path, the target is |this|
