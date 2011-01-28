@@ -33,8 +33,12 @@ define([], function(){
 				};
 				function dispatch(list, target, args){
 //					if(list){
+						list = list.slice();
 						for(var i = 0; i < list.length; i++){
-							list[i].apply(target, args);
+							var listener = list[i];
+							if(!listener.paused){
+								listener.apply(target, args);
+							}
 						}
 	//				}
 				}
@@ -45,10 +49,13 @@ define([], function(){
 								list.splice(list.indexOf(listener), 1);
 							},
 							resume: function(){
-								list[type == "after" ? "push" : "unshift"](listener);
+								listener.paused = false;
+							},
+							pause: function(){
+								listener.paused = true;
 							}
 						};
-						handle.resume();
+						list[type == "after" ? "push" : "unshift"](listener);
 						return handle;
 					};
 				}
