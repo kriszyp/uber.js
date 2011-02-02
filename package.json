@@ -1,0 +1,11 @@
+{
+	"name": "uber",
+	"dependencies": ["has"],
+	"mappings": {
+		"has": "https://github.com/kriszyp/has.js/zipball/master"
+	},
+	"directories": {
+		"lib": "./lib"
+	},
+	"main": "./uber.js"
+}
